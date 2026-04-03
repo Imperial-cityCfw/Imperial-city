@@ -88,6 +88,25 @@
         .maintenance-card h3 { font-size: 24px; margin-bottom: 10px; }
         .maintenance-card p { color: #aaa; }
 
+        /* --- تصميم كرت المنتج الجديد في المتجر --- */
+        .product-card {
+            background: rgba(20, 20, 20, 0.95);
+            border: 1px solid #333;
+            padding: 15px;
+            border-radius: 12px;
+            width: 260px;
+            text-align: center;
+            position: relative;
+            transition: 0.3s;
+        }
+        .product-card img { width: 100%; height: 140px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; border: 1px solid #222; }
+        .product-card:hover { border-color: var(--primary-red); transform: translateY(-5px); }
+        .del-btn { position: absolute; top: 10px; right: 10px; background: var(--primary-red); color: white; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; display: none; }
+
+        /* الداشبورد */
+        #admin-dash { display:none; background: rgba(10, 10, 10, 0.98); padding: 25px; border: 2px solid var(--primary-red); border-radius: 12px; width: 100%; max-width: 450px; margin-top: 20px; }
+        .dash-input { width: 100%; padding: 10px; margin-bottom: 10px; background: #000; color: #fff; border: 1px solid #444; border-radius: 5px; outline: none; }
+
         /* --- قسم المؤسسين المعدل --- */
         .founders-container {
             display: flex;
@@ -212,7 +231,6 @@
 
     <section id="founders">
         <h2 class="section-title">الطاقم الإداري الإمبراطوري</h2>
-        
         <div class="founders-container">
             <div class="founder-card">
                 <a href="https://discord.com/users/1198381505156751420" target="_blank" class="founder-avatar-link" title="اضغط لزيارة الحساب">
@@ -221,8 +239,7 @@
                 <h3 class="founder-name">◜ ! ᴵᶜ 𝐘𝐚𝐡𝐲𝐚</h3>
                 <p class="founder-role" style="color: var(--primary-red);">OWNER IMPERIAL CITY</p>
             </div>
-
-            </div>
+        </div>
     </section>
 
     <section id="police">
@@ -237,10 +254,20 @@
     </section>
 
     <section id="store">
-        <div class="maintenance-card">
-            <i class="fas fa-shopping-cart"></i>
-            <h3>المتجر - Store</h3>
-            <p>المتجر مغلق حالياً للصيانة والتحديث.</p>
+        <h2 class="section-title">متجر الإمبراطورية</h2>
+        <div id="p-list" style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; width: 100%;">
+            <p>جاري تحميل المنتجات...</p>
+        </div>
+
+        <button onclick="accessAdmin()" style="margin-top:40px; background:transparent; border:none; color:#111; cursor:pointer;">Admin</button>
+        
+        <div id="admin-dash">
+            <h4 style="margin-bottom:10px; color:var(--primary-red)">إضافة منتج (لوحة التحكم)</h4>
+            <input type="text" id="i-name" class="dash-input" placeholder="اسم المنتج">
+            <input type="text" id="i-price" class="dash-input" placeholder="السعر">
+            <input type="text" id="i-img" class="dash-input" placeholder="رابط الصورة">
+            <textarea id="i-desc" class="dash-input" placeholder="وصف المنتج"></textarea>
+            <button id="add-btn" style="width:100%; padding:15px; background:var(--primary-red); color:white; border:none; font-weight:bold; cursor:pointer;">نشر المنتج الآن</button>
         </div>
     </section>
 
@@ -248,6 +275,64 @@
         <p>جميع الحقوق محفوظة © 2026 لـ <strong>𝐈𝐌𝐏𝐄𝐑𝐈𝐀𝐋 𝐂𝐈𝐓𝐘</strong></p>
     </footer>
 
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD4H3RXBYdnyMTY_2WC-fD30VI26aPaeWY",
+            authDomain: "imperialcity-b7a58.firebaseapp.com",
+            projectId: "imperialcity-b7a58",
+            databaseURL: "https://imperialcity-b7a58-default-rtdb.firebaseio.com",
+            storageBucket: "imperialcity-b7a58.firebasestorage.app",
+            appId: "1:946608490045:web:13456e364fee448e798c54"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        let adminMode = false;
+
+        onValue(ref(db, 'products'), (s) => {
+            const list = document.getElementById('p-list');
+            list.innerHTML = '';
+            const data = s.val();
+            if(data) {
+                Object.keys(data).forEach(id => {
+                    const p = data[id];
+                    list.innerHTML += `
+                        <div class="product-card">
+                            <button class="del-btn" style="display:${adminMode?'block':'none'}" onclick="deleteP('${id}')">حذف</button>
+                            <img src="${p.img}">
+                            <h3 style="font-size:18px;">${p.name}</h3>
+                            <p style="font-size:12px; color:#aaa; margin:5px 0;">${p.desc}</p>
+                            <span style="color:var(--primary-red); font-weight:bold;">${p.price}</span>
+                        </div>`;
+                });
+            } else { list.innerHTML = '<p>المتجر مغلق حالياً.</p>'; }
+        });
+
+        document.getElementById('add-btn').onclick = () => {
+            const name = document.getElementById('i-name').value;
+            const price = document.getElementById('i-price').value;
+            const img = document.getElementById('i-img').value;
+            const desc = document.getElementById('i-desc').value;
+            if(name && price && img) {
+                push(ref(db, 'products'), { name, price, img, desc }).then(() => {
+                    alert("تمت الإضافة!");
+                    document.getElementById('admin-dash').style.display = 'none';
+                });
+            }
+        };
+
+        window.accessAdmin = () => {
+            if(prompt("كلمة المرور:") === "2026") {
+                adminMode = true;
+                document.getElementById('admin-dash').style.display = 'block';
+                document.querySelectorAll('.del-btn').forEach(b => b.style.display = 'block');
+            }
+        };
+        window.deleteP = (id) => { if(confirm("حذف المنتج؟")) remove(ref(db, 'products/'+id)); };
+    </script>
 </body>
 </html>
  
